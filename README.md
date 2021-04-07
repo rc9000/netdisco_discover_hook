@@ -1,6 +1,6 @@
 # Netdisco discover_hook
 
-This is a Netdisco hooks that can suppress the is_uplink detection of interfaces, based on attributes in device_port.
+This is a Netdisco hook that can suppress the is_uplink detection of interfaces, based on attributes in device_port.
 See https://github.com/netdisco/netdisco/wiki/Hooks for more information.
 
 To run the hook after a device is discovered, put this into deployment.yml
@@ -11,7 +11,7 @@ To run the hook after a device is discovered, put this into deployment.yml
         with:
           cmd: '/home/netdisco/perl5/bin/discover_hook [% ip %]'
 
-To configure the interfaces that should not be uplink, add a section like this in deployment.yml. the supplied fields are matched as regex against the columns in device_port,  ie. "update device_port set is_uplink = false where remote_type ~* '<val>' and remote_port ~* '<val>' and ip = 'hook_ip'. Any number of columns from device_port can be added. 
+To configure the interfaces that should not be uplinks, add a section like this in deployment.yml. The supplied fields are matched as regex against the columns in device_port,  ie. the second example will turn into `update device_port set is_uplink = false where remote_type ~* 'proliant' and remote_port ~* 'ALOM' and ip = 'discovered_device_ip'`. Any number of columns from device_port can be added. 
 
     discover_hook:
         no_uplink_port:
