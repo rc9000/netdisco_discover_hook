@@ -4,7 +4,7 @@ This is a Netdisco hook that can suppress the is_uplink detection of interfaces,
 
 See https://github.com/netdisco/netdisco/wiki/Hooks for more information about Hooks in general.
 
-To run the hook after a device is discovered, put this into deployment.yml
+To run this hook after a device is discovered, put the following into deployment.yml
 
     hooks:
       - type: 'exec'
@@ -21,3 +21,8 @@ To configure the interfaces that should not be uplinks, add a section like this 
             # Typical node that happens to speak some LLDP and is thus wrongly considered an undiscovered neighbor device
             - remote_type: proliant
               remote_port: ALOM
+
+To see what's going on in the hooks queue, use e.g.
+
+    $ netdisco-do psql
+    netdisco=> select *  from admin where action ~* 'hook:' order by entered desc limit 5;
