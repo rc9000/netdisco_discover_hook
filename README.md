@@ -1,6 +1,7 @@
 # Netdisco discover_hook
 
-This is a Netdisco hook that can suppress the is_uplink detection of interfaces, based on attributes in device_port.
+This is a Netdisco hook that can suppress the is_uplink detection of interfaces, based on attributes in device_port. It's tied deeply enough into Netdisco to use database parameters and settings from `deployment.yml`.
+
 See https://github.com/netdisco/netdisco/wiki/Hooks for more information.
 
 To run the hook after a device is discovered, put this into deployment.yml
