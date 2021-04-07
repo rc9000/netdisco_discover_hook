@@ -1,0 +1,85 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+our $home;
+
+BEGIN {
+  use FindBin;
+  FindBin::again();
+
+  $home = ($ENV{NETDISCO_HOME} || $ENV{HOME});
+
+  # try to find a localenv if one isn't already in place.
+  if (!exists $ENV{PERL_LOCAL_LIB_ROOT}) {
+      use File::Spec;
+      my $localenv = File::Spec->catfile($FindBin::RealBin, 'localenv');
+      exec($localenv, $0, @ARGV) if -f $localenv;
+      $localenv = File::Spec->catfile($home, 'perl5', 'bin', 'localenv');
+      exec($localenv, $0, @ARGV) if -f $localenv;
+      $localenv = File::Spec->catfile($home, 'nd2', 'bin', 'localenv');
+      exec($localenv, $0, @ARGV) if -f $localenv;
+
+      die "Sorry, can't find libs required for App::Netdisco.\n"
+        if !exists $ENV{PERLBREW_PERL};
+  }
+}
+
+BEGIN {
+  use Path::Class;
+
+  # stuff useful locations into @INC and $PATH
+  unshift @INC,
+    dir($FindBin::RealBin)->parent->subdir('lib')->stringify,
+    dir($FindBin::RealBin, 'lib')->stringify;
+
+  unshift @INC,
+    split m/:/, ($ENV{NETDISCO_INC} || '');
+
+  use Config;
+  $ENV{PATH} = $FindBin::RealBin . $Config{path_sep} . $ENV{PATH};
+}
+
+use App::Netdisco;
+use Data::Dumper;
+use Dancer qw/:syntax :script/;
+use Dancer::Plugin::DBIC 'schema';
+
+my $CONFIG = config();
+my $debug = 1;
+$CONFIG->{logger} = 'console';
+$CONFIG->{log} = ($debug ? 'debug' : 'info');
+
+# reconfigure logging to force console output
+Dancer::Logger->init('console', $CONFIG);
+
+if (!$ARGV[0]){
+    error("Usage: $0 <ip>");
+    exit(1);
+}
+
+my $ip = $ARGV[0];
+
+my $hc = setting('discover_hook');
+
+foreach my $c (@{$hc->{no_uplink_port}}){
+    my @res = schema('netdisco')->storage->dbh_do(
+        sub {
+            my ($storage, $dbh) = @_;
+            my $qip = $dbh->quote($ip);
+
+            my @regexpairs;
+            foreach my $k (keys %{$c}){
+                my $expr =  $dbh->quote_identifier($k) . " ~* " . $dbh->quote($c->{$k});
+                push(@regexpairs, $expr);
+            }
+
+            my $args = "(" . join(" and ", @regexpairs) . ")";
+
+            my $sql = "update device_port set is_uplink = false where $args and  ip = $qip";
+            my $aff = $dbh->do($sql);
+            debug("discover_hook no_uplink_port $sql affected $aff\n");
+        }
+   );
+}
